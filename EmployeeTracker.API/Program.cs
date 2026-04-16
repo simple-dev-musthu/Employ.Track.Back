@@ -82,8 +82,9 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 var app = builder.Build();
+var port = Environment.GetEnvironmentVariable("PORT") ?? "5284";
 app.Urls.Clear();
-app.Urls.Add("http://0.0.0.0:5284");
+app.Urls.Add($"http://0.0.0.0:{port}");
 app.UseStaticFiles(new StaticFileOptions
 {
     FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(
