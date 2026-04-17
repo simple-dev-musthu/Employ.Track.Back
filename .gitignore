@@ -1,0 +1,24 @@
+# .NET Core
+bin/
+obj/
+publish/
+Debug/
+Release/
+
+# User Uploads (Protect these from being shared unless necessary)
+EmployeeTracker.API/wwwroot/uploads/
+
+# IDE files
+.vs/
+.vscode/
+*.user
+*.userosscache
+*.sln.docstates
+
+# Database files (since you have local .mdf files)
+*.mdf
+*.ldf
+
+# Environment secrets
+appsettings.Development.json
+.env
