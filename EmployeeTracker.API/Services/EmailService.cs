@@ -1,4 +1,4 @@
-﻿using MailKit.Net.Smtp;
+using MailKit.Net.Smtp;
 using MailKit.Security;
 using MimeKit;
 
@@ -156,8 +156,8 @@ namespace EmployeeTracker.API.Services
         {
             var message = new MimeMessage();
             message.From.Add(new MailboxAddress(
-                _config["Email:DisplayName"],
-                _config["Email:From"]
+                _config["Email:DisplayName"] ?? "EmployeeTracker",
+                _config["Email:From"] ?? "noreply@company.com"
             ));
             message.To.Add(new MailboxAddress(toName, toEmail));
             message.Subject = subject;

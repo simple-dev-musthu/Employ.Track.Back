@@ -80,7 +80,8 @@ namespace EmployeeTracker.API.Controllers
                 Role = employee.Role,
                 EmployeeId = employee.Id,
                 Name = employee.Name,
-                Email = employee.Email
+                Email = employee.Email,
+                Mobile = employee.Mobile
             });
         }
 
@@ -105,17 +106,6 @@ namespace EmployeeTracker.API.Controllers
             );
 
             return new JwtSecurityTokenHandler().WriteToken(token);
-        }
-
-        [HttpGet("reset-hr")]
-        [AllowAnonymous]
-        public async Task<IActionResult> ResetHR()
-        {
-            var hr = await _db.Employees.FirstOrDefaultAsync(e => e.Email == "hr@company.com");
-            if (hr == null) return NotFound();
-            hr.PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin@123");
-            await _db.SaveChangesAsync();
-            return Ok(new { message = "HR password reset to Admin@123" });
         }
 
         [HttpPost("change-password")]

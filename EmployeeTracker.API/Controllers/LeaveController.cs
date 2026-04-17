@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
@@ -128,7 +128,7 @@ namespace EmployeeTracker.API.Controllers
                 }
             }
 
-            return Ok(Map(leave, leave.Employee.Name));
+            return Ok(Map(leave, leave.Employee?.Name ?? "Unknown"));
         }
 
         [HttpGet("pending-count")]

@@ -11,7 +11,7 @@ using Microsoft.Extensions.FileProviders;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(Environment.GetEnvironmentVariable("CONNECTION_STRING") ?? builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 var jwtKey = builder.Configuration["Jwt:Key"]!;
 
@@ -46,6 +46,11 @@ builder.Services.AddAuthorization();
 builder.Services.AddSignalR();
 builder.Services.AddScoped<EmployeeTracker.API.Services.IEmailService,
                            EmployeeTracker.API.Services.EmailService>();
+
+builder.Services.Configure<Microsoft.AspNetCore.Builder.ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedFor | Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedProto;
+});
 
 builder.Services.AddCors(options =>
 {
@@ -82,9 +87,12 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 var app = builder.Build();
-var port = Environment.GetEnvironmentVariable("PORT") ?? "5284";
-app.Urls.Clear();
-app.Urls.Add($"http://0.0.0.0:{port}");
+
+// 1. Move Middleware to the very start
+app.UseForwardedHeaders();
+app.UseCors("AllowAll");
+
+// 2. Middleware
 app.UseStaticFiles(new StaticFileOptions
 {
     FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(
@@ -99,36 +107,36 @@ using (var scope = app.Services.CreateScope())
     {
         db.Database.Migrate();
     }
-    catch (Microsoft.Data.SqlClient.SqlException ex) when (ex.Number == 1801)
+    catch (Exception innerEx)
     {
-        // Database already exists — this is fine, just ensure migrations are applied
-        Console.WriteLine("[Startup] Database already exists. Checking for pending migrations...");
-        try
-        {
-            var pending = db.Database.GetPendingMigrations();
-            if (pending.Any())
-            {
-                db.Database.Migrate();
-            }
-        }
-        catch (Exception innerEx)
-        {
-            Console.WriteLine($"[Startup] Migration warning: {innerEx.Message}");
-        }
+        Console.WriteLine($"[Startup] Migration warning or error: {innerEx.Message}");
     }
 }
 
-if (app.Environment.IsDevelopment())
+// Enable Swagger globally (outside IsDevelopment) for easier troubleshooting on MonsterASP
+app.UseSwagger();
+app.UseSwaggerUI(c =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "EmployeeTracker API V1");
+    // Optionally set Swagger as the root page if not using MapFallbackToFile
+});
 
-app.UseCors("AllowAll");
+// Added redirect from root to Swagger to avoid 403 Forbidden errors
+app.MapGet("/", context =>
+{
+    context.Response.Redirect("/swagger");
+    return System.Threading.Tasks.Task.CompletedTask;
+});
+
+// 3. Health check for diagnostics
+app.MapGet("/api/health", () => Results.Ok(new { Status = "Healthy", Time = DateTime.UtcNow }));
+
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
 app.MapHub<LocationHub>("/hubs/location");
+
+
 
 app.Run();
